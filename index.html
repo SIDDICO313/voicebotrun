@@ -118,12 +118,34 @@ async function fetchStackExchange(query){
   } catch(e){ return null; }
 }
 
-// Speak
+/// --- Load voices first ---
+let selectedVoice = null;
+window.speechSynthesis.onvoiceschanged = () => {
+  const voices = speechSynthesis.getVoices();
+  // Try to find a robotic or English male voice
+  selectedVoice = voices.find(v => 
+    /google uk english male|google us english|fred|zarvox|bubbles|albert/i.test(v.name)
+  ) || voices[0];
+};
+
+// --- Speak with robotic tone ---
 function speak(text){
   return new Promise(resolve=>{
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang="en-US";
+    utter.lang = "en-US";
+    utter.pitch = 0.6;   // lower pitch → deeper robot tone
+    utter.rate  = 1.1;   // slight speed boost → mechanical feel
+    utter.volume = 1;
+
+    if(selectedVoice) utter.voice = selectedVoice;
+
+    // optional "beep" before speaking
+    const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    beep.volume = 0.4;
+    beep.play().catch(()=>{});
+
     utter.onend = resolve;
+    speechSynthesis.cancel(); // stop any previous speech
     speechSynthesis.speak(utter);
   });
 }
